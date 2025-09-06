@@ -1,1 +1,43 @@
-/* Add styles here */
+:root {
+    --background-color: #0D1117;
+    --primary-text-color: #C9D1D9;
+    --secondary-text-color: #8B949E;
+    --accent-color: #58A6FF;
+    --border-color: #30363D;
+    --container-background: #161B22;
+    --button-background: #238636;
+    --button-hover-background: #2EA043;
+    --input-background: #010409;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--primary-text-color);
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.app-container {
+    width: 375px; /* Typical mobile width */
+    height: 812px; /* Typical mobile height */
+    background-color: var(--container-background);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.screen {
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Component-specific styles will be added here */
