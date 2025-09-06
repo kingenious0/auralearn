@@ -1,39 +1,41 @@
+import { VertexAI } from '@google-cloud/vertexai';
 
-// This is a serverless function that will be deployed to Vercel/Cloudflare.
-// It receives a POST request with a message and course content, 
-// and should return an AI-generated response.
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
 
-export default async function handler(request, response) {
-    if (request.method !== 'POST') {
-        return response.status(405).json({ error: 'Method Not Allowed' });
-    }
+  const { message, history } = req.body;
 
-    try {
-        const { message, context } = request.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
 
-        if (!message || !context) {
-            return response.status(400).json({ error: 'Bad Request: Missing message or context.' });
-        }
+  const vertex_ai = new VertexAI({ 
+    project: process.env.PROJECT_ID || 'auralearn-beta-427215', 
+    location: 'us-central1' 
+  });
 
-        // --- AI INTEGRATION POINT ---
-        // TODO: Replace this section with a real call to the Gemini API.
-        // You will need to use the Gemini API key and the 'google-auth-library' or 
-        // a similar library to authenticate.
+  const model = 'gemini-1.0-pro';
 
-        // 1. Instantiate your AI client (e.g., GoogleGenerativeAI).
-        // 2. Create a prompt combining the course context and the user's message.
-        //    Example: `Based on the following text: "${context}". Answer this question: "${message}"`
-        // 3. Send the prompt to the AI model.
-        // 4. Get the response text from the AI.
+  const generativeModel = vertex_ai.preview.getGenerativeModel({
+    model: model,
+    generationConfig: {
+      'maxOutputTokens': 2048,
+      'temperature': 0.9,
+      'topP': 1,
+    },
+  });
 
-        const aiResponse = `This is a simulated AI response to your message: "${message}". The full end-to-end connection is working. You can now integrate the real Gemini API here.`;
-        
-        // --- END AI INTEGRATION POINT ---
+  const chat = generativeModel.startChat({ history: history || [] });
 
-        response.status(200).json({ reply: aiResponse });
-
-    } catch (error) {
-        console.error("Error in chat handler:", error);
-        response.status(500).json({ error: "Internal Server Error" });
-    }
+  try {
+    const streamResult = await chat.sendMessageStream(message);
+    const { response } = await streamResult.response;
+    const text = response.candidates[0].content.parts[0].text;
+    res.status(200).json({ response: text });
+  } catch (error) {
+    console.error('Error fetching AI response:', error);
+    res.status(500).json({ error: 'Failed to fetch AI response' });
+  }
 }
