@@ -5,10 +5,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { prompt, history } = req.body;
+  const { message, history } = req.body;
 
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
   }
 
   const vertex_ai = new VertexAI({ 
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   const chat = generativeModel.startChat({ history: history || [] });
 
   try {
-    const streamResult = await chat.sendMessageStream(prompt);
+    const streamResult = await chat.sendMessageStream(message);
     const { response } = await streamResult.response;
     const text = response.candidates[0].content.parts[0].text;
     res.status(200).json({ reply: text });
