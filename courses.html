@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA Learn – Courses</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <h1 class="text-xl font-bold text-gray-900 dark:text-white">AURA Learn</h1>
+      <span class="text-sm text-gray-500 dark:text-gray-400">Courses</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+        <span class="material-symbols-outlined">dark_mode</span>
+      </button>
+      <button onclick="logout()" class="text-sm text-red-600 hover:text-red-700 font-medium">Logout</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-4">
+    <div class="max-w-6xl mx-auto">
+      <!-- Welcome Section -->
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome back!</h2>
+        <p class="text-gray-600 dark:text-gray-400">Select a course to start learning with your AI tutor.</p>
+      </div>
+
+      <!-- Course List -->
+      <div id="courseList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="text-center py-12 hidden">
+        <span class="material-symbols-outlined text-6xl text-gray-400 mb-4 block">school</span>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No courses available</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-4">Contact an admin to add courses to the platform.</p>
+        <button onclick="refreshCourses()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+          <span class="material-symbols-outlined text-sm mr-2">refresh</span>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- JavaScript -->
+  <script src="js/auth.js"></script>
+  <script src="js/courses.js"></script>
+  <script>
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check authentication
+      if (!auth.isLoggedIn() || auth.getRole() !== 'student') {
+        location.href = 'index.html';
+        return;
+      }
+
+      // Load courses
+      loadCourses();
+      
+      // Ensure API key is available for students
+      if (!localStorage.getItem('auraApiKey')) {
+        localStorage.setItem('auraApiKey', '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');
+      }
+    });
+
+    // Load courses from admin uploads and API
+    async function loadCourses() {
+      try {
+        // First, load courses uploaded by admin (from adminCourses localStorage)
+        const adminCourses = JSON.parse(localStorage.getItem('adminCourses') || '[]');
+        
+        // Filter only published courses for students
+        const publishedCourses = adminCourses.filter(course => course.visibility === 'published');
+        
+        // Also try to load from API if available
+        let apiCourses = [];
+        try {
+          const response = await fetch('/api/courses');
+          apiCourses = await response.json();
+        } catch (apiError) {
+          console.log('API not available, using localStorage courses');
+        }
+        
+        // Combine admin courses and API courses (avoid duplicates)
+        const allCourses = [...publishedCourses];
+        apiCourses.forEach(apiCourse => {
+          if (!allCourses.find(course => course.id === apiCourse.id)) {
+            allCourses.push(apiCourse);
+          }
+        });
+        
+        renderCourses(allCourses);
+      } catch (error) {
+        console.error('Failed to load courses:', error);
+        renderCourses([]);
+      }
+    }
+
+    // Render courses in the grid
+    function renderCourses(courses) {
+      const courseList = document.getElementById('courseList');
+      const emptyState = document.getElementById('emptyState');
+
+      if (courses.length === 0) {
+        courseList.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      
+      const html = courses.map(course => {
+        // Handle different course data structures
+        const courseId = course.slug || course.id;
+        const courseTitle = course.title || 'Untitled Course';
+        const courseDescription = course.description || 'No description available';
+        const courseStatus = course.visibility || course.status || 'draft';
+        const studentCount = course.studentCount || 0;
+        const fileName = course.fileName || 'course.pdf';
+        const fileSize = course.fileSize ? `${(course.fileSize / 1024 / 1024).toFixed(1)} MB` : '';
+        
+        return `
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-200 hover:-translate-y-1" onclick="selectCourse('${courseId}')">
+            <div class="h-48 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center relative">
+              <span class="material-symbols-outlined text-white text-4xl">description</span>
+              ${fileSize ? `<div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">${fileSize}</div>` : ''}
+            </div>
+            <div class="p-6">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-semibold text-gray-900 dark:text-white text-lg">${courseTitle}</h3>
+                <span class="text-xs px-2 py-1 rounded-full ${courseStatus === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">${courseStatus}</span>
+              </div>
+              <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">${courseDescription}</p>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <span class="material-symbols-outlined text-sm">people</span>
+                  <span>${studentCount} students</span>
+                </div>
+                <div class="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                  <span class="text-sm font-medium">Start Learning</span>
+                  <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      courseList.innerHTML = html;
+    }
+
+    // Select course and navigate to chat
+    function selectCourse(slug) {
+      // Find the course data
+      const adminCourses = JSON.parse(localStorage.getItem('adminCourses') || '[]');
+      const course = adminCourses.find(c => (c.slug || c.id) === slug);
+      
+      // Store current course data
+      localStorage.setItem('currentCourse', slug);
+      if (course) {
+        localStorage.setItem('currentCourseData', JSON.stringify(course));
+      }
+      
+      // Navigate to course chat
+      location.href = `course-chat.html?slug=${slug}`;
+    }
+
+    // Refresh courses
+    function refreshCourses() {
+      loadCourses();
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    }
+
+    // Logout function is now global from auth.js
+
+    // Initialize theme
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+</body>
+</html>

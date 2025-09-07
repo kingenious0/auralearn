@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA Learn – Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <button onclick="toggleLeftSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <h1 class="text-xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+        <span class="material-symbols-outlined">dark_mode</span>
+      </button>
+      <button onclick="logout()" class="text-sm text-red-600 hover:text-red-700 font-medium">Logout</button>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Left Sidebar (courses list) -->
+    <aside id="leftSidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+      <div class="p-4 h-full overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-semibold text-gray-900 dark:text-white">Courses</h2>
+          <button onclick="toggleLeftSidebar()" class="lg:hidden p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span class="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+        <div id="courseList" class="space-y-3">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Content Area -->
+    <main class="flex-1 flex flex-col lg:ml-64 overflow-y-auto">
+      <div class="flex-1 p-8">
+        <div class="max-w-4xl mx-auto">
+          <!-- Upload Area -->
+          <div id="dropZone" class="w-full h-64 border-4 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-colors duration-200">
+            <span class="material-symbols-outlined text-6xl text-gray-400 mb-4">cloud_upload</span>
+            <p class="text-lg text-gray-600 dark:text-gray-400 mb-2">Drag PDF here or click to browse</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500">Supports PDF files up to 50MB</p>
+            <input type="file" id="pdfFile" accept=".pdf" class="hidden">
+          </div>
+
+          <!-- Course Details Form -->
+          <div id="courseForm" class="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Course Details</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Course Title</label>
+                <input type="text" id="courseTitle" placeholder="Enter course title..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <textarea id="courseDescription" placeholder="Enter course description..." rows="3" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags (comma-separated)</label>
+                <input type="text" id="courseTags" placeholder="e.g., programming, javascript, web development" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload Button -->
+          <div class="mt-6 text-center">
+            <button id="uploadBtn" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              <span class="material-symbols-outlined">upload</span>
+              Upload & Create Course
+            </button>
+            <p id="uploadStatus" class="text-sm mt-2 text-gray-500 dark:text-gray-400"></p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Panel (settings) -->
+    <aside id="rightPanel" class="fixed inset-y-0 right-0 z-40 w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 transform translate-x-full lg:translate-x-0 transition-transform duration-300">
+      <div class="p-4 h-full flex flex-col overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-semibold text-gray-900 dark:text-white">Admin Settings</h2>
+          <button onclick="toggleRightPanel()" class="lg:hidden p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span class="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">AI API Key (Optional)</label>
+            <input type="password" id="apiKeyInput" placeholder="Enter API key for cloud AI..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty to use local AI only</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">AI Model</label>
+            <select id="aiModel" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+              <option value="deepseek-r1:8b">DeepSeek R1 8B (Local)</option>
+              <option value="gpt-4">GPT-4 (Cloud)</option>
+              <option value="claude-3">Claude 3 (Cloud)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Course Visibility</label>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="visibilityToggle" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              <label for="visibilityToggle" class="text-sm text-gray-700 dark:text-gray-300">Publish immediately</label>
+            </div>
+          </div>
+          <button id="saveSettings" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium">Save Settings</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Overlay for mobile -->
+  <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden" onclick="closeSidebars()"></div>
+
+  <!-- JavaScript -->
+  <script src="js/auth.js"></script>
+  <script src="js/admin.js"></script>
+  <script>
+    let selectedFile = null;
+    let isUploading = false;
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check authentication
+      if (!auth.isLoggedIn() || auth.getRole() !== 'admin') {
+        location.href = 'index.html';
+        return;
+      }
+
+      // Load existing courses
+      loadCourses();
+      
+      // Add sample courses for demo if none exist
+      const existingCourses = JSON.parse(localStorage.getItem('adminCourses') || '[]');
+      if (existingCourses.length === 0) {
+        const sampleCourses = [
+          {
+            id: '1',
+            title: 'Data Structures and Algorithms',
+            description: 'Learn fundamental data structures and algorithms',
+            tags: ['programming', 'algorithms', 'computer-science'],
+            visibility: 'published',
+            aiModel: 'deepseek-r1:8b',
+            fileName: 'dsa-course.pdf',
+            fileSize: 20850000,
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: '2',
+            title: 'Web Development Fundamentals',
+            description: 'HTML, CSS, and JavaScript basics',
+            tags: ['web-development', 'html', 'css', 'javascript'],
+            visibility: 'draft',
+            aiModel: 'deepseek-r1:8b',
+            fileName: 'web-dev-basics.pdf',
+            fileSize: 15600000,
+            createdAt: new Date().toISOString()
+          }
+        ];
+        localStorage.setItem('adminCourses', JSON.stringify(sampleCourses));
+        loadCourses();
+      }
+      
+      // Pre-populate API key if not set
+      if (!localStorage.getItem('auraApiKey')) {
+        localStorage.setItem('auraApiKey', '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');
+      }
+      
+      // Initialize form
+      initForm();
+      
+      // Load settings
+      loadSettings();
+    });
+
+    // Sidebar toggles
+    function toggleLeftSidebar() {
+      const sidebar = document.getElementById('leftSidebar');
+      const overlay = document.getElementById('overlay');
+      sidebar.classList.toggle('-translate-x-full');
+      overlay.classList.toggle('hidden');
+    }
+
+    function toggleRightPanel() {
+      const panel = document.getElementById('rightPanel');
+      const overlay = document.getElementById('overlay');
+      panel.classList.toggle('translate-x-full');
+      overlay.classList.toggle('hidden');
+    }
+
+    function closeSidebars() {
+      document.getElementById('leftSidebar').classList.add('-translate-x-full');
+      document.getElementById('rightPanel').classList.add('translate-x-full');
+      document.getElementById('overlay').classList.add('hidden');
+    }
+
+    // Form initialization
+    function initForm() {
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('pdfFile');
+      const uploadBtn = document.getElementById('uploadBtn');
+
+      // File input change
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleFileSelect(e.target.files[0]);
+        }
+      });
+
+      // Drop zone events
+      dropZone.addEventListener('click', () => fileInput.click());
+      dropZone.addEventListener('dragover', handleDragOver);
+      dropZone.addEventListener('dragleave', handleDragLeave);
+      dropZone.addEventListener('drop', handleDrop);
+
+      // Upload button
+      uploadBtn.addEventListener('click', handleUpload);
+
+      // Form validation
+      const titleInput = document.getElementById('courseTitle');
+      titleInput.addEventListener('input', validateForm);
+    }
+
+    // File handling
+    function handleFileSelect(file) {
+      if (file.type !== 'application/pdf') {
+        showStatus('Please select a valid PDF file.', 'error');
+        return;
+      }
+
+      selectedFile = file;
+      updateDropZone(file);
+      showCourseForm();
+      validateForm();
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFileSelect(files[0]);
+      }
+    }
+
+    function updateDropZone(file) {
+      const dropZone = document.getElementById('dropZone');
+      dropZone.innerHTML = `
+        <span class="material-symbols-outlined text-6xl text-green-500 mb-4">check_circle</span>
+        <p class="text-lg text-gray-900 dark:text-white mb-1">${file.name}</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+      `;
+      dropZone.classList.add('border-green-500', 'bg-green-50', 'dark:bg-green-900/20');
+    }
+
+    function showCourseForm() {
+      document.getElementById('courseForm').classList.remove('hidden');
+    }
+
+    function validateForm() {
+      const title = document.getElementById('courseTitle').value.trim();
+      const uploadBtn = document.getElementById('uploadBtn');
+      
+      uploadBtn.disabled = !selectedFile || !title || isUploading;
+    }
+
+    // Upload functionality
+    async function handleUpload() {
+      if (isUploading) return;
+
+      const title = document.getElementById('courseTitle').value.trim();
+      const description = document.getElementById('courseDescription').value.trim();
+      const tags = document.getElementById('courseTags').value.trim();
+      const visibility = document.getElementById('visibilityToggle').checked;
+      const aiModel = document.getElementById('aiModel').value;
+
+      if (!selectedFile || !title) {
+        showStatus('Please select a file and enter a title.', 'error');
+        return;
+      }
+
+      isUploading = true;
+      setUploadButtonLoading(true);
+      showStatus('Uploading and processing PDF...', 'info');
+
+      try {
+        // Simulate upload process with delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Mock successful upload
+        const data = {
+          success: true,
+          course: {
+            id: Date.now().toString(),
+            title: title,
+            description: description,
+            tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+            visibility: visibility ? 'published' : 'draft',
+            aiModel: aiModel,
+            fileName: selectedFile.name,
+            fileSize: selectedFile.size,
+            createdAt: new Date().toISOString()
+          }
+        };
+        
+        // Store course in localStorage for demo
+        const existingCourses = JSON.parse(localStorage.getItem('adminCourses') || '[]');
+        existingCourses.push(data.course);
+        localStorage.setItem('adminCourses', JSON.stringify(existingCourses));
+        
+        if (data.success) {
+          showStatus('Course created successfully!', 'success');
+          
+          // Reset form
+          resetForm();
+          
+          // Reload courses
+          setTimeout(() => {
+            loadCourses();
+          }, 1000);
+        } else {
+          throw new Error(data.message || 'Upload failed');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        showStatus(`Upload failed: ${error.message}`, 'error');
+      } finally {
+        isUploading = false;
+        setUploadButtonLoading(false);
+      }
+    }
+
+    function setUploadButtonLoading(loading) {
+      const uploadBtn = document.getElementById('uploadBtn');
+      if (!uploadBtn) return; // Safety check
+      
+      if (loading) {
+        uploadBtn.innerHTML = `
+          <span class="material-symbols-outlined animate-spin">refresh</span>
+          Processing...
+        `;
+        uploadBtn.disabled = true;
+      } else {
+        uploadBtn.innerHTML = `
+          <span class="material-symbols-outlined">upload</span>
+          Upload & Create Course
+        `;
+        validateForm();
+      }
+    }
+
+    function resetForm() {
+      selectedFile = null;
+      
+      // Safety checks for all form elements
+      const pdfFile = document.getElementById('pdfFile');
+      const courseTitle = document.getElementById('courseTitle');
+      const courseDescription = document.getElementById('courseDescription');
+      const courseTags = document.getElementById('courseTags');
+      const visibilityToggle = document.getElementById('visibilityToggle');
+      const courseForm = document.getElementById('courseForm');
+      
+      if (pdfFile) pdfFile.value = '';
+      if (courseTitle) courseTitle.value = '';
+      if (courseDescription) courseDescription.value = '';
+      if (courseTags) courseTags.value = '';
+      if (visibilityToggle) visibilityToggle.checked = false;
+      
+      // Reset drop zone
+      const dropZone = document.getElementById('dropZone');
+      if (dropZone) {
+        dropZone.innerHTML = `
+          <span class="material-symbols-outlined text-6xl text-gray-400 mb-4">cloud_upload</span>
+          <p class="text-lg text-gray-600 dark:text-gray-400 mb-2">Drag PDF here or click to browse</p>
+          <p class="text-sm text-gray-500 dark:text-gray-500">Supports PDF files up to 50MB</p>
+        `;
+        dropZone.classList.remove('border-green-500', 'bg-green-50', 'dark:bg-green-900/20');
+      }
+      
+      if (courseForm) courseForm.classList.add('hidden');
+      validateForm();
+    }
+
+    function showStatus(message, type) {
+      const statusElement = document.getElementById('uploadStatus');
+      if (!statusElement) return; // Safety check
+      
+      statusElement.textContent = message;
+      statusElement.className = `text-sm mt-2 ${getStatusClass(type)}`;
+      
+      if (type === 'success') {
+        setTimeout(() => {
+          if (statusElement) {
+            statusElement.textContent = '';
+            statusElement.className = 'text-sm mt-2 text-gray-500 dark:text-gray-400';
+          }
+        }, 5000);
+      }
+    }
+
+    function getStatusClass(type) {
+      switch (type) {
+        case 'success': return 'text-green-600 dark:text-green-400';
+        case 'error': return 'text-red-600 dark:text-red-400';
+        case 'info': return 'text-blue-600 dark:text-blue-400';
+        default: return 'text-gray-500 dark:text-gray-400';
+      }
+    }
+
+    // Settings
+    function loadSettings() {
+      const apiKey = localStorage.getItem('auraApiKey');
+      const aiModel = localStorage.getItem('auraAiModel') || 'deepseek-r1:8b';
+      
+      const apiKeyInput = document.getElementById('apiKeyInput');
+      const aiModelSelect = document.getElementById('aiModel');
+      const saveSettingsBtn = document.getElementById('saveSettings');
+      
+      if (apiKey && apiKeyInput) {
+        apiKeyInput.value = apiKey;
+      }
+      if (aiModelSelect) {
+        aiModelSelect.value = aiModel;
+      }
+
+      // Save settings button
+      if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', saveSettings);
+      }
+    }
+
+    function saveSettings() {
+      const apiKeyInput = document.getElementById('apiKeyInput');
+      const aiModelSelect = document.getElementById('aiModel');
+      
+      if (!apiKeyInput || !aiModelSelect) return; // Safety check
+      
+      const apiKey = apiKeyInput.value.trim();
+      const aiModel = aiModelSelect.value;
+      
+      if (apiKey) {
+        localStorage.setItem('auraApiKey', apiKey);
+      } else {
+        localStorage.removeItem('auraApiKey');
+      }
+      
+      localStorage.setItem('auraAiModel', aiModel);
+      
+      showStatus('Settings saved!', 'success');
+    }
+
+    // Course management
+    async function loadCourses() {
+      try {
+        // Load from localStorage (admin courses)
+        const adminCourses = JSON.parse(localStorage.getItem('adminCourses') || '[]');
+        renderCourses(adminCourses);
+        
+        // Also try to load from API if available
+        try {
+          const response = await fetch('/api/courses');
+          const apiCourses = await response.json();
+          if (apiCourses.length > 0) {
+            renderCourses(apiCourses);
+          }
+        } catch (apiError) {
+          console.log('API not available, using localStorage courses');
+        }
+      } catch (error) {
+        console.error('Failed to load courses:', error);
+        renderCourses([]);
+      }
+    }
+
+    function renderCourses(courses) {
+      const courseList = document.getElementById('courseList');
+      
+      if (courses.length === 0) {
+        courseList.innerHTML = `
+          <div class="text-center text-gray-500 dark:text-gray-400 py-4">
+            <span class="material-symbols-outlined text-4xl mb-2 block">school</span>
+            <p>No courses yet</p>
+            <p class="text-sm">Upload a PDF to create your first course</p>
+          </div>
+        `;
+        return;
+      }
+
+      const html = courses.map(course => `
+        <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" onclick="selectCourse('${course.id}')">
+          <h3 class="font-medium text-gray-900 dark:text-white text-sm">${course.title}</h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${course.studentCount || 0} students</p>
+          <div class="flex items-center justify-between mt-2">
+            <span class="text-xs px-2 py-1 rounded-full ${course.status === 'published' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">${course.status || 'draft'}</span>
+            <button onclick="deleteCourse('${course.id}', event)" class="text-red-500 hover:text-red-700 text-xs">
+              <span class="material-symbols-outlined text-sm">delete</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
+      
+      courseList.innerHTML = html;
+    }
+
+    function selectCourse(courseId) {
+      // Navigate to course editor or show course details
+      console.log('Selected course:', courseId);
+    }
+
+    async function deleteCourse(courseId, event) {
+      event.stopPropagation();
+      
+      if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/admin/courses/${courseId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          showStatus('Course deleted successfully!', 'success');
+          loadCourses();
+        } else {
+          throw new Error('Failed to delete course');
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        showStatus('Failed to delete course', 'error');
+      }
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    }
+
+    // Logout function is now global from auth.js
+
+    // Initialize theme
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+</body>
+</html>

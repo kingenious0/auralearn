@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA Learn – Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    
+    /* StudyAl UI Styling */
+    .chat-bubble {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 18px;
+    }
+    
+    .course-card {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      transition: all 0.2s ease;
+    }
+    
+    .course-card:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      transform: translateY(-1px);
+    }
+    
+    .notes-panel {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .send-button {
+      min-height: 44px;
+      min-width: 80px;
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      flex-shrink: 0;
+      position: relative !important;
+      z-index: 10 !important;
+      background-color: #2563eb !important;
+      color: white !important;
+      border: none !important;
+      cursor: pointer !important;
+    }
+    
+    /* Debug: Make sure button is visible */
+    #chatInput + button {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    /* Ensure chat input area is properly laid out */
+    .chat-input-container {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      width: 100%;
+    }
+    
+    .chat-input-container input {
+      flex: 1;
+    }
+    
+    .chat-input-container button {
+      flex-shrink: 0;
+    }
+    
+    /* Smooth transitions */
+    .sidebar-transition {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <button onclick="toggleLeftSidebar()" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <div>
+        <h2 id="chatHeader" class="text-lg font-semibold text-gray-900 dark:text-white">AI Tutor</h2>
+        <p id="courseStatus" class="text-sm text-gray-500 dark:text-gray-400">Ready to help</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="toggleRightPanel()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+        <span class="material-symbols-outlined">notes</span>
+      </button>
+      <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+        <span class="material-symbols-outlined">dark_mode</span>
+      </button>
+      <button onclick="logout()" class="text-sm text-red-600 hover:text-red-700 font-medium">Logout</button>
+    </div>
+  </header>
+
+  <!-- Main Layout (StudyAl clone) -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Left Sidebar (collapsible) -->
+    <aside id="leftSidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transform -translate-x-full lg:translate-x-0 sidebar-transition">
+      <div class="p-4 h-full flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-semibold text-gray-900 dark:text-white">Courses</h2>
+          <button onclick="toggleLeftSidebar()" class="lg:hidden p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span class="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+        <div id="courseList" class="flex-1 space-y-3 overflow-y-auto">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Chat (StudyAl clone) -->
+    <main class="flex-1 flex flex-col lg:ml-64">
+      <div id="chatArea" class="flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- Welcome message -->
+        <div class="flex justify-start">
+          <div class="chat-bubble bg-gray-100 dark:bg-gray-700 p-4 max-w-[80%]">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="material-symbols-outlined text-blue-600">smart_toy</span>
+              <span class="font-medium text-gray-900 dark:text-white">AI Tutor</span>
+            </div>
+            <p class="text-gray-700 dark:text-gray-300" id="welcomeMessage">Hello! I'm your AI learning companion. Select a course from the sidebar to get started, or ask me about your studies!</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="chat-input-container">
+          <input id="chatInput" type="text" placeholder="Ask me anything..." class="px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <button onclick="handleSend()" class="send-button bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors duration-200 flex items-center gap-2">
+            <span class="material-symbols-outlined">send</span>
+            Send
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Panel (notes) -->
+    <aside id="rightPanel" class="fixed inset-y-0 right-0 z-40 w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 transform translate-x-full lg:translate-x-0 sidebar-transition">
+      <div class="p-4 h-full flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-semibold text-gray-900 dark:text-white">Notes</h2>
+          <button onclick="toggleRightPanel()" class="lg:hidden p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+            <span class="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+        <textarea id="notesArea" placeholder="Take notes..." class="flex-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"></textarea>
+        <div class="mt-4 flex gap-2">
+          <button onclick="saveNotes()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium">Save Notes</button>
+          <button onclick="exportNotes()" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700">
+            <span class="material-symbols-outlined text-sm">download</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Overlay for mobile -->
+  <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden" onclick="closeSidebars()"></div>
+
+  <!-- JavaScript -->
+  <script src="js/auth.js"></script>
+  <script src="js/courses.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/notes.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="js/export.js"></script>
+  <script>
+    let messages = [];
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check authentication
+      if (!auth.isLoggedIn() || auth.getRole() !== 'student') {
+        location.href = 'index.html';
+        return;
+      }
+
+      // Get course from URL or localStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      const courseSlug = urlParams.get('slug') || localStorage.getItem('currentCourse');
+      
+      if (!courseSlug) {
+        location.href = 'courses.html';
+        return;
+      }
+
+      // Load course and initialize components
+      loadCourse(courseSlug);
+      initChat();
+      initNotes();
+      loadCourses();
+      
+      // Load saved notes
+      const savedNotes = localStorage.getItem('userNotes');
+      if (savedNotes) {
+        document.getElementById('notesArea').value = savedNotes;
+      }
+      
+      // Debug: Check if send button exists and is visible
+      setTimeout(() => {
+        const sendButton = document.querySelector('.send-button');
+        const chatInput = document.getElementById('chatInput');
+        console.log('Send button exists:', !!sendButton);
+        console.log('Chat input exists:', !!chatInput);
+        if (sendButton) {
+          console.log('Send button styles:', window.getComputedStyle(sendButton));
+          sendButton.style.display = 'flex';
+          sendButton.style.visibility = 'visible';
+          sendButton.style.opacity = '1';
+        }
+        
+      // Debug: Check API key
+      const apiKey = localStorage.getItem('auraApiKey');
+      console.log('API key configured:', !!apiKey);
+      console.log('API key length:', apiKey ? apiKey.length : 0);
+      
+      // If no API key, set the default one
+      if (!apiKey) {
+        console.log('Setting default API key...');
+        localStorage.setItem('auraApiKey', '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');
+        console.log('Default API key set');
+      }
+      }, 1000);
+    });
+
+    // Sidebar toggles (StudyAl style)
+    function toggleLeftSidebar() {
+      const sidebar = document.getElementById('leftSidebar');
+      const overlay = document.getElementById('overlay');
+      sidebar.classList.toggle('-translate-x-full');
+      overlay.classList.toggle('hidden');
+    }
+
+    function toggleRightPanel() {
+      const panel = document.getElementById('rightPanel');
+      const overlay = document.getElementById('overlay');
+      panel.classList.toggle('translate-x-full');
+      overlay.classList.toggle('hidden');
+    }
+
+    function closeSidebars() {
+      document.getElementById('leftSidebar').classList.add('-translate-x-full');
+      document.getElementById('rightPanel').classList.add('translate-x-full');
+      document.getElementById('overlay').classList.add('hidden');
+    }
+
+    // Load course data
+    async function loadCourse(slug) {
+      try {
+        // First try to load from localStorage (admin uploaded courses)
+        const courseData = localStorage.getItem('currentCourseData');
+        if (courseData) {
+          const course = JSON.parse(courseData);
+          currentCourse = course;
+          
+          // Update UI
+          document.getElementById('chatHeader').textContent = course.title;
+          document.getElementById('courseStatus').textContent = 'Course loaded';
+          document.title = `AURA Learn – ${course.title}`;
+          
+          // Update welcome message
+          const welcomeMessage = document.getElementById('welcomeMessage');
+          welcomeMessage.textContent = `Hello! I'm your AI tutor for "${course.title}". I have access to all the course materials and I'm ready to help you learn. What would you like to know?`;
+          
+          // Store course context for AI
+          localStorage.setItem('courseContext', JSON.stringify({
+            title: course.title,
+            description: course.description,
+            content: course.content || '',
+            slug: course.slug || course.id,
+            fileName: course.fileName,
+            fileSize: course.fileSize
+          }));
+          
+          return;
+        }
+        
+        // Fallback to API
+        const response = await fetch(`/api/courses/${slug}`);
+        const course = await response.json();
+        currentCourse = course;
+        
+        // Update UI
+        document.getElementById('chatHeader').textContent = course.title;
+        document.getElementById('courseStatus').textContent = 'Course loaded';
+        document.title = `AURA Learn – ${course.title}`;
+        
+        // Update welcome message
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        welcomeMessage.textContent = `Hello! I'm your AI tutor for "${course.title}". I have access to all the course materials and I'm ready to help you learn. What would you like to know?`;
+        
+        // Store course context for AI
+        localStorage.setItem('courseContext', JSON.stringify({
+          title: course.title,
+          description: course.description,
+          content: course.content || '',
+          slug: course.slug
+        }));
+        
+      } catch (error) {
+        console.error('Failed to load course:', error);
+        // Fallback to basic course info
+        currentCourse = { title: slug, description: 'Course content' };
+        document.getElementById('chatHeader').textContent = slug;
+        document.getElementById('courseStatus').textContent = 'Course loaded (offline)';
+      }
+    }
+
+    // Chat functionality
+    function initChat() {
+      const chatInput = document.getElementById('chatInput');
+      chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          handleSend();
+        }
+      });
+    }
+
+    async function handleSend() {
+      const chatInput = document.getElementById('chatInput');
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      // Add user message
+      messages.push({ sender: 'user', text, timestamp: new Date() });
+      chatInput.value = '';
+      renderMessages();
+
+      // Show typing indicator
+      showTypingIndicator();
+
+      try {
+        // Try cloud AI first (OpenRouter)
+        const response = await callCloudAI(text);
+        messages.push({ sender: 'ai', text: response, timestamp: new Date() });
+      } catch (error) {
+        console.error('Cloud AI error:', error);
+        try {
+          // Fallback to local AI
+          const response = await callLocalAI(text);
+          messages.push({ sender: 'ai', text: response, timestamp: new Date() });
+        } catch (localError) {
+          console.error('Local AI error:', localError);
+          messages.push({ 
+            sender: 'ai', 
+            text: 'Sorry, I\'m having trouble connecting to the AI. Please try again later.', 
+            timestamp: new Date() 
+          });
+        }
+      }
+
+      hideTypingIndicator();
+      renderMessages();
+    }
+
+    // Call cloud AI (OpenRouter)
+    async function callCloudAI(userMessage) {
+      const courseContext = localStorage.getItem('courseContext');
+      const context = courseContext ? JSON.parse(courseContext) : {};
+      
+      // Get API key from admin settings
+      const apiKey = localStorage.getItem('auraApiKey');
+      
+      if (!apiKey) {
+        throw new Error('No API key configured');
+      }
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          context: JSON.stringify(context),
+          apiKey: apiKey
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error('Cloud AI request failed');
+      }
+
+      const data = await res.json();
+      return data.reply || 'I apologize, but I could not generate a response.';
+    }
+
+    // Call local AI (fallback)
+    async function callLocalAI(userMessage) {
+      const courseContext = localStorage.getItem('courseContext');
+      const context = courseContext ? JSON.parse(courseContext) : {};
+      
+      const prompt = `You are an AI tutor for the course "${context.title || 'Learning'}". 
+Course description: ${context.description || 'General learning course'}
+Course content: ${context.content || 'No specific content available'}
+
+User question: ${userMessage}
+
+Provide a helpful, educational response based on the course context. Keep it concise but informative.`;
+
+      const res = await fetch('http://localhost:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'deepseek-r1:8b',
+          prompt: prompt,
+          stream: false
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error('Local AI server not available');
+      }
+
+      const data = await res.json();
+      return data.response || 'I apologize, but I could not generate a response.';
+    }
+
+    function renderMessages() {
+      const chatArea = document.getElementById('chatArea');
+      const html = messages.map(m => `
+        <div class="flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}">
+          <div class="${m.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700'} p-4 rounded-lg max-w-[80%]">
+            <div class="flex items-center gap-2 mb-1">
+              ${m.sender === 'ai' ? '<span class="material-symbols-outlined text-blue-600">smart_toy</span>' : ''}
+              <span class="font-medium text-sm">${m.sender === 'user' ? 'You' : 'AI Tutor'}</span>
+            </div>
+            <div class="text-sm">${m.text}</div>
+            <div class="text-xs opacity-70 mt-1">${formatTime(m.timestamp)}</div>
+          </div>
+        </div>
+      `).join('');
+      
+      chatArea.innerHTML = html;
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function showTypingIndicator() {
+      const chatArea = document.getElementById('chatArea');
+      const typingDiv = document.createElement('div');
+      typingDiv.id = 'typing-indicator';
+      typingDiv.className = 'flex justify-start';
+      typingDiv.innerHTML = `
+        <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+          <div class="flex space-x-1">
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+            <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+          </div>
+        </div>
+      `;
+      chatArea.appendChild(typingDiv);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      const typingIndicator = document.getElementById('typing-indicator');
+      if (typingIndicator) {
+        typingIndicator.remove();
+      }
+    }
+
+    function formatTime(timestamp) {
+      return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Navigation
+    function goBack() {
+      history.back();
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    }
+
+    // Notes functionality (StudyAl style)
+    function saveNotes() {
+      const notesArea = document.getElementById('notesArea');
+      if (notesArea) {
+        const notes = notesArea.value;
+        localStorage.setItem('userNotes', notes);
+        
+        // Show success message
+        const button = event.target;
+        const originalText = button.textContent;
+        button.textContent = 'Saved!';
+        button.classList.add('bg-green-600');
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.classList.remove('bg-green-600');
+        }, 2000);
+      }
+    }
+
+    function exportNotes() {
+      // Use the export.js functionality
+      if (typeof window.exportNotes === 'function') {
+        window.exportNotes();
+      } else {
+        // Fallback to simple text export
+        const notes = document.getElementById('notesArea').value;
+        const blob = new Blob([notes], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `aura-notes-${Date.now()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    // Logout function is now global from auth.js
+
+    // Initialize theme
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+</body>
+</html>
