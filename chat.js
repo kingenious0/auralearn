@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://auralearn.pages.app',
+        'HTTP-Referer': 'https://auralearn-git-master-kingenious0-gmailcoms-projects.vercel.app/',
         'X-Title': 'AURA Learn'
       },
       body: JSON.stringify({
