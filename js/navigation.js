@@ -169,4 +169,4 @@ class NavigationManager {
 window.navigation = new NavigationManager();
 
 // Export for module use
-export default window.navigation;
+// Navigation functions are available globally

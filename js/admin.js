@@ -235,13 +235,7 @@ async function deleteCourse(courseSlug) {
   }
 }
 
-// Export functions
-export {
-  initAdmin,
-  handleUpload,
-  deleteCourse,
-  showStatus
-};
+// Functions are available globally
 
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', initAdmin);
